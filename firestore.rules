@@ -1,0 +1,119 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // An administrator is any signed-in user whose UID has a document in /admins.
+    // Create that document manually in the Firebase Console (see README).
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isPublished() {
+      return resource.data.published == true;
+    }
+
+    function okText(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    // ---------- administrators ----------
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false; // managed only from the Firebase Console / Admin SDK
+    }
+
+    // ---------- website settings (public read, admin write) ----------
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- public content: visible only when published ----------
+    match /founder/{id} {
+      allow read: if isPublished() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /teachers/{id} {
+      allow read: if isPublished() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /events/{id} {
+      allow read: if isPublished() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /achievements/{id} {
+      allow read: if isPublished() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /gallery/{id} {
+      allow read: if isPublished() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- admission applications: private ----------
+    // Anyone may submit one, but only with the expected shape and initial status.
+    match /admissions/{id} {
+      allow create: if request.resource.data.keys().hasOnly(
+          ['studentName', 'dateOfBirth', 'gender', 'guardianName', 'guardianPhone', 'email',
+           'gradeApplied', 'previousSchool', 'address', 'notes', 'status', 'createdAt'])
+        && request.resource.data.status == 'New'
+        && request.resource.data.createdAt == request.time
+        && okText(request.resource.data.studentName, 120)
+        && request.resource.data.studentName.size() >= 2
+        && okText(request.resource.data.dateOfBirth, 20)
+        && okText(request.resource.data.gender, 20)
+        && okText(request.resource.data.guardianName, 120)
+        && okText(request.resource.data.guardianPhone, 25)
+        && okText(request.resource.data.email, 200)
+        && okText(request.resource.data.gradeApplied, 80)
+        && okText(request.resource.data.previousSchool, 160)
+        && okText(request.resource.data.address, 500)
+        && okText(request.resource.data.notes, 1000);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------- feedback & complaints: private ----------
+    match /feedback/{id} {
+      allow create: if request.resource.data.keys().hasOnly(
+          ['kind', 'name', 'anonymous', 'contact', 'subject', 'message', 'status', 'read', 'createdAt'])
+        && request.resource.data.kind in ['Feedback', 'Complaint']
+        && request.resource.data.status == 'New'
+        && request.resource.data.read == false
+        && request.resource.data.anonymous is bool
+        && request.resource.data.createdAt == request.time
+        && okText(request.resource.data.name, 120)
+        && okText(request.resource.data.contact, 200)
+        && okText(request.resource.data.subject, 150)
+        && request.resource.data.subject.size() >= 3
+        && okText(request.resource.data.message, 3000)
+        && request.resource.data.message.size() >= 10;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------- admin notifications ----------
+    // Created alongside a public submission; read/managed by admins only.
+    match /notifications/{id} {
+      allow create: if request.resource.data.keys().hasOnly(
+          ['type', 'title', 'message', 'link', 'read', 'createdAt'])
+        && request.resource.data.type in ['admission', 'feedback']
+        && request.resource.data.read == false
+        && request.resource.data.createdAt == request.time
+        && okText(request.resource.data.title, 120)
+        && okText(request.resource.data.message, 300)
+        && okText(request.resource.data.link, 200);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Everything else is denied by default.
+  }
+}

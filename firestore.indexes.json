@@ -1,0 +1,10 @@
+{
+  "indexes": [
+    { "collectionGroup": "founder", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "published", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" }] },
+    { "collectionGroup": "teachers", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "published", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" }] },
+    { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "published", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" }] },
+    { "collectionGroup": "achievements", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "published", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" }] },
+    { "collectionGroup": "gallery", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "published", "order": "ASCENDING" }, { "fieldPath": "order", "order": "ASCENDING" }] }
+  ],
+  "fieldOverrides": []
+}
